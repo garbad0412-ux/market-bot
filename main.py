@@ -13,6 +13,7 @@ from aiogram.types import (
     WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton,
     LabeledPrice, PreCheckoutQuery
 )
+from aiogram.client.default import DefaultBotProperties
 
 # ========================= НАСТРОЙКИ =========================
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -43,7 +44,10 @@ users_db: List[UserProfile] = [
 ]
 
 # ========================= ИНИЦИАЛИЗАЦИЯ =========================
-bot = Bot(token=BOT_TOKEN, parse_mode="HTML")
+bot = Bot(
+    token=BOT_TOKEN,
+    default=DefaultBotProperties(parse_mode="HTML")
+)
 dp = Dispatcher()
 app = FastAPI(title="Биржа Специалистов")
 
@@ -61,7 +65,10 @@ async def start_handler(message: types.Message):
         [InlineKeyboardButton(text="📱 Открыть Биржу", web_app=WebAppInfo(url=WEBAPP_URL))],
         [InlineKeyboardButton(text="⭐ Купить Boost (50 ⭐️)", callback_data="buy_boost")]
     ])
-    await message.answer("👋 <b>Добро пожаловать на Биржу!</b>", reply_markup=kb)
+    await message.answer(
+        "👋 <b>Добро пожаловать на Биржу!</b>\n\nНайди специалиста или продвинь свою анкету.",
+        reply_markup=kb
+    )
 
 
 @dp.callback_query(F.data == "buy_boost")
@@ -72,7 +79,7 @@ async def buy_boost_handler(callback: types.CallbackQuery):
         description="Подъём анкеты в ТОП на 7 дней",
         payload="premium_boost",
         currency="XTR",
-        prices=[LabeledPrice(label="Boost", amount=50)],
+        prices=[LabeledPrice(label="Boost 7 дней", amount=50)],
         provider_token="",
     )
 
@@ -84,13 +91,16 @@ async def pre_checkout(query: PreCheckoutQuery):
 
 @dp.message(F.successful_payment)
 async def successful_payment(message: types.Message):
-    await message.answer("✅ Оплата прошла успешно! Вы в ТОПе.")
+    await message.answer("🎉 <b>Оплата прошла успешно!</b>\nТы теперь в ТОПе!")
 
 
 # ========================= API =========================
 @app.get("/api/search")
-async def search_candidates(skill: Optional[str] = Query(None), city: Optional[str] = Query(None)):
-    results = [u.model_dump() for u in users_db]   # pydantic v2 compatibility
+async def search_candidates(
+    skill: Optional[str] = Query(None),
+    city: Optional[str] = Query(None)
+):
+    results = [u.model_dump() for u in users_db]
 
     if skill:
         skill_lower = skill.lower()
@@ -117,7 +127,5 @@ async def main():
         dp.start_polling(bot),
         return_exceptions=True
     )
-
-
 if name == "__main__":
     asyncio.run(main())
