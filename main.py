@@ -1,4 +1,4 @@
-import asyncio
+mport asyncio
 import os
 import logging
 from typing import List, Optional
@@ -39,7 +39,7 @@ class UserProfile(BaseModel):
 users_db: List[UserProfile] = [
     UserProfile(id=1, name="Иван Петров", skills=["Python", "FastAPI", "PostgreSQL", "Docker"], 
                 city="Москва", price=2500, is_premium=True, rating=4.9),
-    UserProfile(id=2, name="Анна Смирнова", skills=["Figma", "UI/UX", "Framer", "Webflow"], 
+    UserProfile(id=2, name="Анна Смирнова", skills=["Figma", "UI/UX", "Framer"], 
                 city="Удалённо", price=1800, is_premium=False, rating=5.0),
     UserProfile(id=3, name="Дмитрий Соколов", skills=["React Native", "TypeScript", "Flutter"], 
                 city="Санкт-Петербург", price=3200, is_premium=True, rating=4.7),
@@ -68,8 +68,8 @@ async def start_handler(message: types.Message):
         [InlineKeyboardButton(text="⭐ Купить Boost (50 ⭐️)", callback_data="buy_boost")]
     ])
     await message.answer(
-        "👋 <b>Добро пожаловать на современную Биржу фриланса!</b>\n\n"
-        "Быстрый поиск специалистов • Удобный интерфейс • Платежи через Telegram Stars",
+        "👋 <b>Добро пожаловать на Биржу!</b>\n\n"
+        "Найди лучшего специалиста или продвинь свою анкету.",
         reply_markup=kb
     )
 
@@ -94,7 +94,8 @@ async def pre_checkout(query: PreCheckoutQuery):
 
 @dp.message(F.successful_payment)
 async def successful_payment(message: types.Message):
-    await message.answer("🎉 <b>Поздравляем!</b>\nВаш профиль теперь в ТОПе на 7 дней!")
+    await message.answer("🎉 <b>Оплата прошла успешно!</b>\nВаш профиль теперь в ТОПе на 7 дней!")
+
 
 # ========================= API =========================
 @app.get("/api/search")
@@ -109,14 +110,18 @@ async def search_candidates(
     if skill:
         skill_lower = skill.lower()
         results = [u for u in results if any(skill_lower in s.lower() for s in u.skills)]
+
     if city:
         city_lower = city.lower()
         results = [u for u in results if city_lower in u.city.lower()]
+
     if min_price is not None:
         results = [u for u in results if u.price >= min_price]
     if max_price is not None:
         results = [u for u in results if u.price <= max_price]
-results.sort(key=lambda x: (x.is_premium, x.price), reverse=True)
+
+    results.sort(key=lambda x: (x.is_premium, x.
+price), reverse=True)
     return results
 
 
@@ -134,7 +139,11 @@ async def main():
     config = uvicorn.Config(app, host="0.0.0.0", port=port, log_level="info")
     server = uvicorn.Server(config)
 
-    await asyncio.gather(server.serve(), dp.start_polling(bot), return_exceptions=True)
+    await asyncio.gather(
+        server.serve(),
+        dp.start_polling(bot),
+        return_exceptions=True
+    )
 
 
 if name == "__main__":
