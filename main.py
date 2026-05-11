@@ -19,7 +19,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
 
 if not BOT_TOKEN or not WEBAPP_URL:
-    raise ValueError("❌ BOT_TOKEN и WEBAPP_URL обязательны! Добавь их в Render → Environment Variables")
+    raise ValueError("❌ BOT_TOKEN и WEBAPP_URL обязательны!")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -37,9 +37,9 @@ class UserProfile(BaseModel):
 
 # ========================= ДАННЫЕ =========================
 users_db: List[UserProfile] = [
-    UserProfile(id=1, name="Иван Петров", skills=["Python", "FastAPI", "PostgreSQL"], city="Москва", price=2500, is_premium=True, rating=4.9),
-    UserProfile(id=2, name="Анна Смирнова", skills=["Figma", "UI/UX", "Framer"], city="Удалённо", price=1800, is_premium=False, rating=5.0),
-    UserProfile(id=3, name="Дмитрий Соколов", skills=["React Native", "TypeScript", "Flutter"], city="Санкт-Петербург", price=3200, is_premium=True, rating=4.7),
+    UserProfile(id=1, name="Иван Петров", skills=["Python", "FastAPI"], city="Москва", price=2500, is_premium=True, rating=4.9),
+    UserProfile(id=2, name="Анна Смирнова", skills=["Figma", "UI/UX"], city="Удалённо", price=1800, is_premium=False, rating=5.0),
+    UserProfile(id=3, name="Дмитрий Соколов", skills=["React Native", "Flutter"], city="Санкт-Петербург", price=3200, is_premium=True, rating=4.7),
 ]
 
 # ========================= ИНИЦИАЛИЗАЦИЯ =========================
@@ -50,7 +50,6 @@ app = FastAPI(title="Биржа Специалистов")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -62,11 +61,7 @@ async def start_handler(message: types.Message):
         [InlineKeyboardButton(text="📱 Открыть Биржу", web_app=WebAppInfo(url=WEBAPP_URL))],
         [InlineKeyboardButton(text="⭐ Купить Boost (50 ⭐️)", callback_data="buy_boost")]
     ])
-    await message.answer(
-        "👋 <b>Добро пожаловать на Биржу Специалистов!</b>\n\n"
-        "Найди исполнителя или продвинь свою анкету.",
-        reply_markup=kb
-    )
+    await message.answer("👋 <b>Добро пожаловать на Биржу!</b>", reply_markup=kb)
 
 
 @dp.callback_query(F.data == "buy_boost")
@@ -75,9 +70,9 @@ async def buy_boost_handler(callback: types.CallbackQuery):
         chat_id=callback.from_user.id,
         title="Premium Boost",
         description="Подъём анкеты в ТОП на 7 дней",
-        payload="premium_boost_7d",
+        payload="premium_boost",
         currency="XTR",
-        prices=[LabeledPrice(label="Premium Boost", amount=50)],
+        prices=[LabeledPrice(label="Boost", amount=50)],
         provider_token="",
     )
 
@@ -89,31 +84,23 @@ async def pre_checkout(query: PreCheckoutQuery):
 
 @dp.message(F.successful_payment)
 async def successful_payment(message: types.Message):
-    await message.answer("🎉 <b>Оплата прошла успешно!</b>\nВаш профиль теперь в ТОПе на 7 дней!")
+    await message.answer("✅ Оплата прошла успешно! Вы в ТОПе.")
 
 
 # ========================= API =========================
 @app.get("/api/search")
-async def search_candidates(
-    skill: Optional[str] = Query(None),
-    city: Optional[str] = Query(None)
-):
-    results = users_db.copy()
+async def search_candidates(skill: Optional[str] = Query(None), city: Optional[str] = Query(None)):
+    results = [u.model_dump() for u in users_db]   # pydantic v2 compatibility
 
     if skill:
         skill_lower = skill.lower()
-        results = [u for u in results if any(skill_lower in s.lower() for s in u.skills)]
+        results = [u for u in results if any(skill_lower in s.lower() for s in u["skills"])]
     if city:
         city_lower = city.lower()
-        results = [u for u in results if city_lower in u.city.lower()]
+        results = [u for u in results if city_lower in u["city"].lower()]
 
-    results.sort(key=lambda x: (x.is_premium, x.price), reverse=True)
+    results.sort(key=lambda x: (x["is_premium"], x["price"]), reverse=True)
     return results
-
-
-@app.get("/")
-async def root():
-    return {"status": "ok", "message": "Биржа работает"}
 
 
 # ========================= ЗАПУСК =========================
@@ -124,7 +111,8 @@ async def main():
     import uvicorn
     config = uvicorn.Config(app, host="0.0.0.0", port=port, log_level="info")
     server = uvicorn.Server(config)
-await asyncio.gather(
+
+    await asyncio.gather(
         server.serve(),
         dp.start_polling(bot),
         return_exceptions=True
