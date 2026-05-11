@@ -15,11 +15,11 @@ from aiogram.types import (
 )
 
 # ========================= НАСТРОЙКИ =========================
-BOT_TOKEN = os.getenv("8629362225:AAFHLuL06lYbVttdcQ0dfmnhuFx576YOvUE")
-WEBAPP_URL = os.getenv("https://garbad0412-ux.github.io/market-bot/")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+WEBAPP_URL = os.getenv("WEBAPP_URL")
 
 if not BOT_TOKEN or not WEBAPP_URL:
-    raise ValueError("❌ BOT_TOKEN и WEBAPP_URL обязательны!")
+    raise ValueError("❌ BOT_TOKEN и WEBAPP_URL обязательны! Добавь их в Render → Environment Variables")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -37,14 +37,9 @@ class UserProfile(BaseModel):
 
 # ========================= ДАННЫЕ =========================
 users_db: List[UserProfile] = [
-    UserProfile(id=1, name="Иван Петров", skills=["Python", "FastAPI", "PostgreSQL", "Docker"], 
-                city="Москва", price=2500, is_premium=True, rating=4.9),
-    UserProfile(id=2, name="Анна Смирнова", skills=["Figma", "UI/UX", "Framer"], 
-                city="Удалённо", price=1800, is_premium=False, rating=5.0),
-    UserProfile(id=3, name="Дмитрий Соколов", skills=["React Native", "TypeScript", "Flutter"], 
-                city="Санкт-Петербург", price=3200, is_premium=True, rating=4.7),
-    UserProfile(id=4, name="Екатерина Морозова", skills=["React", "Next.js", "Tailwind"], 
-                city="Удалённо", price=2200, is_premium=False, rating=4.8),
+    UserProfile(id=1, name="Иван Петров", skills=["Python", "FastAPI", "PostgreSQL"], city="Москва", price=2500, is_premium=True, rating=4.9),
+    UserProfile(id=2, name="Анна Смирнова", skills=["Figma", "UI/UX", "Framer"], city="Удалённо", price=1800, is_premium=False, rating=5.0),
+    UserProfile(id=3, name="Дмитрий Соколов", skills=["React Native", "TypeScript", "Flutter"], city="Санкт-Петербург", price=3200, is_premium=True, rating=4.7),
 ]
 
 # ========================= ИНИЦИАЛИЗАЦИЯ =========================
@@ -68,8 +63,8 @@ async def start_handler(message: types.Message):
         [InlineKeyboardButton(text="⭐ Купить Boost (50 ⭐️)", callback_data="buy_boost")]
     ])
     await message.answer(
-        "👋 <b>Добро пожаловать на Биржу!</b>\n\n"
-        "Найди лучшего специалиста или продвинь свою анкету.",
+        "👋 <b>Добро пожаловать на Биржу Специалистов!</b>\n\n"
+        "Найди исполнителя или продвинь свою анкету.",
         reply_markup=kb
     )
 
@@ -79,7 +74,7 @@ async def buy_boost_handler(callback: types.CallbackQuery):
     await bot.send_invoice(
         chat_id=callback.from_user.id,
         title="Premium Boost",
-        description="Подъём анкеты в ТОП + выделение на 7 дней",
+        description="Подъём анкеты в ТОП на 7 дней",
         payload="premium_boost_7d",
         currency="XTR",
         prices=[LabeledPrice(label="Premium Boost", amount=50)],
@@ -101,33 +96,24 @@ async def successful_payment(message: types.Message):
 @app.get("/api/search")
 async def search_candidates(
     skill: Optional[str] = Query(None),
-    city: Optional[str] = Query(None),
-    min_price: Optional[int] = None,
-    max_price: Optional[int] = None,
+    city: Optional[str] = Query(None)
 ):
     results = users_db.copy()
 
     if skill:
         skill_lower = skill.lower()
         results = [u for u in results if any(skill_lower in s.lower() for s in u.skills)]
-
     if city:
         city_lower = city.lower()
         results = [u for u in results if city_lower in u.city.lower()]
 
-    if min_price is not None:
-        results = [u for u in results if u.price >= min_price]
-    if max_price is not None:
-        results = [u for u in results if u.price <= max_price]
-
-    results.sort(key=lambda x: (x.is_premium, x.
-price), reverse=True)
+    results.sort(key=lambda x: (x.is_premium, x.price), reverse=True)
     return results
 
 
 @app.get("/")
 async def root():
-    return {"status": "ok", "app": "Биржа Специалистов"}
+    return {"status": "ok", "message": "Биржа работает"}
 
 
 # ========================= ЗАПУСК =========================
@@ -138,8 +124,7 @@ async def main():
     import uvicorn
     config = uvicorn.Config(app, host="0.0.0.0", port=port, log_level="info")
     server = uvicorn.Server(config)
-
-    await asyncio.gather(
+await asyncio.gather(
         server.serve(),
         dp.start_polling(bot),
         return_exceptions=True
