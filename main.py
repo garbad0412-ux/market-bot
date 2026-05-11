@@ -89,18 +89,12 @@ async def pre_checkout(query: PreCheckoutQuery):
 
 @dp.message(F.successful_payment)
 async def successful_payment(message: types.Message):
-    await message.answer(
-        "🎉 <b>Оплата прошла успешно!</b>\n"
-        "Ты теперь в ТОПе на 7 дней!"
-    )
+    await message.answer("🎉 <b>Оплата прошла успешно!</b>\nТы теперь в ТОПе на 7 дней!")
 
 
 # ========================= API =========================
 @app.get("/api/search")
-async def search_candidates(
-    skill: Optional[str] = Query(None),
-    city: Optional[str] = Query(None)
-):
+async def search_candidates(skill: Optional[str] = Query(None), city: Optional[str] = Query(None)):
     results = [u.model_dump() for u in users_db]
 
     if skill:
@@ -126,9 +120,7 @@ async def main():
     await asyncio.gather(
         server.serve(),
         dp.start_polling(bot),
-return_exceptions=True
+        return_exceptions=True
     )
-
-
 if name == "__main__":
     asyncio.run(main())
