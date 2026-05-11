@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root { --tg-theme-bg: #fff; --tg-theme-text: #000; --tg-accent: #0088cc; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto; background: #f0f2f5; padding: 15px; margin: 0; color: var(--tg-theme-text); }
+        .search-box { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 20px; box-sizing: border-box; font-size: 16px; outline: none; }
+        .card { background: white; border-radius: 15px; padding: 15px; margin-bottom: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-left: 5px solid #ccc; position: relative; }
+        /* Золотая рамка для тех, кто купил буст за Звезды */
+        .card.premium { border-left-color: #ffd700; background: #fffdf0; }
+        .card.premium::after { content: "⭐"; position: absolute; top: 10px; right: 10px; font-size: 18px; }
+        .name { font-weight: bold; font-size: 18px; margin-bottom: 5px; }
+        .skills { font-size: 14px; color: #666; margin-bottom: 10px; }
+        .price { color: var(--tg-accent); font-weight: bold; }
+        .btn { background: var(--tg-accent); color: white; border: none; width: 100%; padding: 10px; border-radius: 10px; margin-top: 10px; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <input type="text" id="searchInput" class="search-box" placeholder="Кто вам нужен? (напр. Python)...">
+    
+    <div id="app"></div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Разворачиваем Mini App на весь экран телефона
+        
+        // ВНИМАНИЕ: Сюда нужно будет вставить ссылку, которую тебе даст Render.com в Шаге 3
+        const API_URL = "https://ваш-бэкенд.onrender.com";
+
+        async function fetchUsers(query = "") {
+            const app = document.getElementById('app');
+            app.innerHTML = "Ищем лучших специалистов...";
+            
+            try {
+                // Делаем запрос к твоему Python-серверу
+                const res = await fetch(`${API_URL}/api/search?skill=${query}`);
+                const users = await res.json();
+                
+                app.innerHTML = "";
+                users.forEach(user => {
+                    const el = document.createElement('div');
+                    el.className = card ${user.is_premium ? 'premium' : ''};
+                    el.innerHTML = `
+                        <div class="name">${user.name}</div>
+                        <div class="skills">Навыки: ${user.skills.join(", ")}</div>
+                        <div class="price">от ${user.price}₽</div>
+                        <button class="btn" onclick="openChat('${user.id}')">Связаться</button>
+                    `;
+                    app.appendChild(el);
+                });
+            } catch (e) {
+                app.innerHTML = "Ошибка: Сервер не отвечает. Убедись, что Шаг 3 выполнен.";
+            }
+        }
+
+        // Функция, которая сообщает боту, с кем мы хотим связаться
+        function openChat(id) {
+            tg.sendData("contact_request_" + id);
+            tg.close();
+        }
+
+        // Слушаем, что пользователь пишет в поиске
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            fetchUsers(e.target.value);
+        });
+
+        // Запускаем первичный поиск при открытии
+        fetchUsers();
+    </script>
+</body>
+</html>gf
