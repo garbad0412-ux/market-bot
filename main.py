@@ -44,10 +44,7 @@ users_db: List[UserProfile] = [
 ]
 
 # ========================= ИНИЦИАЛИЗАЦИЯ =========================
-bot = Bot(
-    token=BOT_TOKEN,
-    default=DefaultBotProperties(parse_mode="HTML")
-)
+bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
 dp = Dispatcher()
 app = FastAPI(title="Биржа Специалистов")
 
@@ -65,10 +62,7 @@ async def start_handler(message: types.Message):
         [InlineKeyboardButton(text="📱 Открыть Биржу", web_app=WebAppInfo(url=WEBAPP_URL))],
         [InlineKeyboardButton(text="⭐ Купить Boost (50 ⭐️)", callback_data="buy_boost")]
     ])
-    await message.answer(
-        "👋 <b>Добро пожаловать на Биржу!</b>\n\nНайди специалиста или продвинь свою анкету.",
-        reply_markup=kb
-    )
+    await message.answer("👋 <b>Добро пожаловать на Биржу Специалистов!</b>", reply_markup=kb)
 
 
 @dp.callback_query(F.data == "buy_boost")
@@ -91,41 +85,4 @@ async def pre_checkout(query: PreCheckoutQuery):
 
 @dp.message(F.successful_payment)
 async def successful_payment(message: types.Message):
-    await message.answer("🎉 <b>Оплата прошла успешно!</b>\nТы теперь в ТОПе!")
-
-
-# ========================= API =========================
-@app.get("/api/search")
-async def search_candidates(
-    skill: Optional[str] = Query(None),
-    city: Optional[str] = Query(None)
-):
-    results = [u.model_dump() for u in users_db]
-
-    if skill:
-        skill_lower = skill.lower()
-        results = [u for u in results if any(skill_lower in s.lower() for s in u["skills"])]
-    if city:
-        city_lower = city.lower()
-        results = [u for u in results if city_lower in u["city"].lower()]
-
-    results.sort(key=lambda x: (x["is_premium"], x["price"]), reverse=True)
-    return results
-
-
-# ========================= ЗАПУСК =========================
-async def main():
-    port = int(os.getenv("PORT", 8000))
-    logger.info(f"🚀 Биржа запущена на порту {port}")
-
-    import uvicorn
-    config = uvicorn.Config(app, host="0.0.0.0", port=port, log_level="info")
-    server = uvicorn.Server(config)
-
-    await asyncio.gather(
-        server.serve(),
-        dp.start_polling(bot),
-        return_exceptions=True
-    )
-if name == "__main__":
-    asyncio.run(main())
+    await message.answer("🎉 <b>Оплата прошла успешно!</b>\nТы теперь
